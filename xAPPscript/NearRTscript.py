@@ -5,25 +5,26 @@ import sys
 from time import sleep
 # New script
 SLEEPINT=5
-GLOBAL_POLICY=1
+INITIALIZE=False
 SLICE1 = 0
 SLICE2 = 0
+SLICE3 = 0
+S3EXIST = False
 
 
-
-print ('Number of arguments:', len(sys.argv), 'arguments.')
-print ('Argument List:', str(sys.argv))
-
-
+# Get information about K8s pod IPs
 NEXRAN_XAPP=os.popen("sudo kubectl get svc -n ricxapp --field-selector metadata.name=service-ricxapp-nexran-rmr -o jsonpath='{.items[0].spec.clusterIP}'").read()
 KONG_PROXY=os.popen("sudo kubectl get svc -n ricplt -l app.kubernetes.io/name=kong -o jsonpath='{.items[0].spec.clusterIP}'").read()
 
+# Get the nodebs in the system
 SETUP_URL = "http://{}:8000/v1/nodebs".format(NEXRAN_XAPP)
-print(NEXRAN_XAPP,KONG_PROXY,SETUP_URL)
+# Print the xAPP IP for checking
+# print(NEXRAN_XAPP,KONG_PROXY,SETUP_URL)
 SETUP_EXISTS= request ("GET",SETUP_URL,headers = {'Accept': 'application/json'},data= {})
 nodebs=json.loads(SETUP_EXISTS.text)
 print(nodebs)
 
+# Commnet out in final version
 if len(nodebs['nodebs'])==0:
     print("currently no nodebs exist")
 else:
@@ -65,13 +66,29 @@ def slice2A(share=1024):
     res = request("POST","http://{}:8000/v1/nodebs/enB_macro_101_001_0019b0/slices/slice2".format(NEXRAN_XAPP))
     sleep(SLEEPINT)
 
-def sliceDslow():
-    pass
+def slice3A(share=1024):
+    print("Creating slice3")
+    res = request("POST","http://{}:8000/v1/slices".format(NEXRAN_XAPP),data='{"name":"slice3","allocation_policy":{"type":"proportional","share":50}}')
+    sleep(SLEEPINT)
+
+    print("binding slice3 to enb")
+    res = request("POST","http://{}:8000/v1/nodebs/enB_macro_101_001_0019b0/slices/slice3".format(NEXRAN_XAPP))
+    sleep(SLEEPINT)
+
+def DeleteSlice(slice_name="slice3"):
+    # unbind the slice - slice 3 by default
+    # curl -X 'DELETE'  http://${NEXRAN_XAPP}:8000/v1/nodebs/enB_macro_101_001_0019b0/slices/slice1 -H 'accept: */*'
+    res = request("DELETE","http://{}:8000/v1/nodebs/enB_macro_101_001_0019b0/slices/{}".format(NEXRAN_XAPP,slice_name))
+    sleep(SLEEPINT)
+    # delete the slice
+    # curl -X 'DELETE' http://${NEXRAN_XAPP}:8000/v1/slices/slice1 -H 'accept: */*'
+    res = request("DELETE","http://{}:8000/v1/slices/{}".format(NEXRAN_XAPP,slice_name))
+    sleep(SLEEPINT)
 
 def sliveDfast():
     pass
 
-def ueA1():
+def ueA3():
     # curl -i -X POST -H "Content-type: application/json" -d '{"imsi":"101010123456789"}' http://${NEXRAN_XAPP}:8000/v1/ues
     print("Creating UE 101010123456789")
     res = request("POST","http://{}:8000/v1/ues".format(NEXRAN_XAPP), data = '{"imsi":"101010123456789"}')
@@ -91,13 +108,23 @@ def ueA2():
     res = request("POST","http://{}:8000/v1/slices/slice2/ues/101010123456787".format(NEXRAN_XAPP))
     sleep(SLEEPINT)
 
+def ueA1():
+    # curl -i -X POST -H "Content-type: application/json" -d '{"imsi":"101010123456788"}' http://${NEXRAN_XAPP}:8000/v1/ues
+    print("Creating UE 101010123456788")
+    res = request("POST","http://{}:8000/v1/ues".format(NEXRAN_XAPP), data = '{"imsi":"101010123456788"}')
+    sleep(SLEEPINT)
+    print("binding ue 101010123456788 to slice2")
+    # curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/slices/slice1/ues/101010123456788
+    res = request("POST","http://{}:8000/v1/slices/slice2/ues/101010123456788".format(NEXRAN_XAPP))
+    sleep(SLEEPINT)
+
 def ueD1():
     pass
 
 def ueD2():
     pass
 
-def switchSlice(S1,S2):
+def switchSlice(S1,S2,S3=0):
     # curl -X PUT   http://${NEXRAN_XAPP}:8000/v1/slices/slow  -H 'accept: */*'  -H 'Content-Type: application/json'  -d '{"allocation_policy": {"type": "proportional","share": 64}}'
     data = '{"allocation_policy": {"type": "proportional","share":'+str(S1)+'}}'
     res = request("PUT","http://{}:8000/v1/slices/slice1".format(NEXRAN_XAPP),data=data)
@@ -108,11 +135,17 @@ def switchSlice(S1,S2):
     res = request("PUT","http://{}:8000/v1/slices/slice2".format(NEXRAN_XAPP),data=data)
     sleep(SLEEPINT)
 
+    if S3!=0:
+        data = '{"allocation_policy": {"type": "proportional","share":'+str(S2)+'}}'
+        res = request("PUT","http://{}:8000/v1/slices/slice3".format(NEXRAN_XAPP),data=data)
+        sleep(SLEEPINT)
+
 
 
 
 if __name__=="__main__":
 
+    # Wait till the Policy is published by the rAPP
     while True:
         try:
             session= request("GET","http://{}:32080/a1mediator/a1-p/policytypes/22000/policies".format(KONG_PROXY)).text
@@ -121,6 +154,7 @@ if __name__=="__main__":
         except:
             pass
 
+    # Check if the required policy data is present
     while True:
 
         try:
@@ -128,27 +162,37 @@ if __name__=="__main__":
             POL=json.loads(RESP.text)['policy_conf']
             S1=json.loads(RESP.text)['slice_1']
             S2=json.loads(RESP.text)['slice_2']
-           #  GLOBAL_POLICY = 0
-           #  enbA()
-           # slice2A()
-           #  slice1A()
-           #  ueA1()
-           #  ueA2()
+            S3=json.loads(RESP.text)['slice_3']
+
 
         except:
+            # how often to check if the Policy data is published by the rAPP
             sleep(2)
             continue
 
-        if S1 != SLICE1 or  S2!=SLICE2:
-            print("New proportions",S1,S2)
+        # create a slice if First responder appears
+        if S3 > 0 and not S3EXIST:
+            slice3A()
+            ueA3()
+            S3EXIST = True
+        # Delete slice3 if First responder not present
+        elif S3==0 and S3EXIST:
+            DeleteSlice("slice3")
+
+        # Apply new proportions
+        if S1 != SLICE1 or  S2!=SLICE2 or (S3!=0 and S3!=SLICE3):
+            print("New proportions",S1,S2,S3)
             SLICE1 = S1
             SLICE2 = S2
-            switchSlice(S1,S2)
+            SLICE3 = S3
+            if S3 >0:
+                S3EXIST = True
+            switchSlice(S1,S2,S3)
             print("Slice Changed")
 
-
-        if POL == '0' and GLOBAL_POLICY != 0:
-            GLOBAL_POLICY = 0
+        #  Initialize setup
+        if POL == '0' and not INITIALIZE:
+            INITIALIZE = True
             enbA()
             slice2A()
             slice1A()
