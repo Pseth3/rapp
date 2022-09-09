@@ -49,9 +49,13 @@ DEFAULT_HOST = "http://{0}:8081".format(MAIN_IP)
 # DEFAULT_HOST = "http://10.152.183.137:8081"
 BASE_PATH = "/a1-policy/v2"
 RIC_CHUNK_SIZE = 10
-TIME_BETWEEN_CHECKS = 60
+TIME_BETWEEN_CHECKS = 10
 I = 0
-SLICES = [2000,4000,5000]
+SLICES = {'slice_1':50,
+            'slice_2':50,
+            'slice_3':0,
+            'first_responder':'NO'}
+
 
 type_to_use = ''
 policy_data = ''
@@ -60,8 +64,9 @@ app = Flask(__name__)
 
 # Server info
 HOST_IP = "::"
-HOST_PORT = 9990
+HOST_PORT = 41000 # 9990
 APP_URL = "/stats"
+SERVER_URL = "/slices"
 
 stat_page_template = """
 <!DOCTYPE html>
@@ -164,17 +169,28 @@ class MonitorServer (threading.Thread):
         app.run(port=HOST_PORT, host=HOST_IP)
 
 
-@app.route(APP_URL,
-    methods=['GET'])
-def produceStatsPage():
-    t = Template(stat_page_template)
-    page = t.render(refreshTime=TIME_BETWEEN_CHECKS, policyTypeId=type_to_use, policyBodyPath=policy_body_path,
-    time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), duration=duration, noOfChecks=no_of_checks,
-    noOfUnavailableRics=no_of_unavailable_rics, noOfNotSupportingRics=no_of_rics_not_supporting_type,
-    noOfSupportingRics=no_of_rics_supporting_type, noOfCreatedPolicies=no_of_created_policies,
-    noOfReadPolicies=no_of_read_policies, noOfUpdatedPolicies=no_of_updated_policies,
-    noOfDeletedPolicies=no_of_deleted_policies)
-    return page,200
+@app.route(SERVER_URL,
+            methord=["POST"])
+def ListenSlice():
+    if request.methord == "POST":
+        global SLICES
+        SLICES = request.get_json()
+        return 200
+
+
+
+
+# @app.route(APP_URL,
+#     methods=['GET'])
+# def produceStatsPage():
+#     t = Template(stat_page_template)
+#     page = t.render(refreshTime=TIME_BETWEEN_CHECKS, policyTypeId=type_to_use, policyBodyPath=policy_body_path,
+#     time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), duration=duration, noOfChecks=no_of_checks,
+#     noOfUnavailableRics=no_of_unavailable_rics, noOfNotSupportingRics=no_of_rics_not_supporting_type,
+#     noOfSupportingRics=no_of_rics_supporting_type, noOfCreatedPolicies=no_of_created_policies,
+#     noOfReadPolicies=no_of_read_policies, noOfUpdatedPolicies=no_of_updated_policies,
+#     noOfDeletedPolicies=no_of_deleted_policies)
+#     return page,200
 
 def get_rics_from_agent():
     resp = requests.get(base_url + '/rics')
@@ -209,11 +225,12 @@ def update_rics():
 def put_policy(thread_id, ric_name, update_value=0):
     global I
     global initial_time
-    slicelist = [[425,900],
-                 [910,220],
-                 [500,600],
-                 [730,0],
-                 [0,0]]
+    global SLICES
+    # slicelist = [[425,900],
+    #              [910,220],
+    #              [500,600],
+    #              [730,0],
+    #              [0,0]]
                 
     policy_id = f'thread_{thread_id}'
     complete_url = base_url + '/policies'
@@ -241,27 +258,42 @@ def put_policy(thread_id, ric_name, update_value=0):
     #     I = 4
     #     print("Implementing policy 0")
 
-    
+
 
     # Predict the proportion
     # load the model from disk
     filename = 'finalized_model.sav'
     loaded_model = pickle.load(open(filename, 'rb'))
-    slice_1_prop =int( loaded_model.predict([[slicelist[I][0],slicelist[I][1]]])[0]*100)
-    slice_2_prop = 100-slice_1_prop
+    # slice_1_prop =int( loaded_model.predict([[slicelist[I][0],slicelist[I][1]]])[0]*100)
+    # slice_2_prop = 100-slice_1_prop
+
+    # Check IMSI and decide sliceproportions
+    if SLICES['slice_3']==0:
+        slice_1_prop =int( loaded_model.predict(SLICES['slice_1'],SLICES['slice_2'])[0]*100)
+        slice_2_prop = 100-slice_1_prop
+        slice_3_prop = 0
+        pol = 0
+    elif SLICES['slice_3']!=0:
+        slice_3_prop = int( loaded_model.predict(SLICES['slice_3'],SLICES['slice_2']+SLICES['slice_1'])[0]*100)
+        slice_1_prop =((100-slice_3_prop)/100) * (int( loaded_model.predict(SLICES['slice_1'],SLICES['slice_2'])[0]*100))
+        slice_2_prop = 100-(slice_1_prop+slice_3_prop)
+        pol = 1
+
 
     # update policy data
     policy_obj = json.loads(policy_data.replace('XXX', str(pol)))
     policy_obj['policy_conf'] = str(pol)
     policy_obj['slice_1'] = str(slice_1_prop) 
     policy_obj['slice_2'] = str(slice_2_prop)
+    policy_obj['slice_3'] = str(slice_3_prop)
     # policy_data = policy_data.replace('XXX', str(pol))
     # policy_data = policy_data.replace('YYY', str(slice_1_prop))
     # policy_data = policy_data.replace('ZZZ', str(slice_2_prop))
     # policy_obj['slice_1'] = str(slice_1_prop)
 
-    print("Existing slice requirements",slicelist[I][0],slicelist[I][1])
-    print("Implementing proportions",slice_1_prop,slice_2_prop)
+    # print("Existing slice requirements",slicelist[I][0],slicelist[I][1])
+    print("Existing slice requirements",SLICES['slice_1'],SLICES['slice_2'],SLICES['slice_3'])
+    print("Implementing proportions",slice_1_prop,slice_2_prop,slice_3_prop)
 
     # policy_obj = json.loads(policy_data)
     body = {
