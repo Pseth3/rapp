@@ -115,7 +115,7 @@ def ueA1():
     sleep(SLEEPINT)
     print("binding ue 101010123456788 to slice2")
     # curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/slices/slice1/ues/101010123456788
-    res = request("POST","http://{}:8000/v1/slices/slice2/ues/101010123456788".format(NEXRAN_XAPP))
+    res = request("POST","http://{}:8000/v1/slices/slice1/ues/101010123456788".format(NEXRAN_XAPP))
     sleep(SLEEPINT)
 
 def ueD1():
@@ -160,9 +160,9 @@ if __name__=="__main__":
         try:
             RESP = request("GET","http://{}:32080/a1mediator/a1-p/policytypes/22000/policies/{}".format(KONG_PROXY,temp))
             POL=json.loads(RESP.text)['policy_conf']
-            S1=json.loads(RESP.text)['slice_1']
-            S2=json.loads(RESP.text)['slice_2']
-            S3=json.loads(RESP.text)['slice_3']
+            S1=int(json.loads(RESP.text)['slice_1'])
+            S2=int(json.loads(RESP.text)['slice_2'])
+            S3=int(json.loads(RESP.text)['slice_3'])
 
 
         except:

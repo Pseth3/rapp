@@ -51,10 +51,7 @@ BASE_PATH = "/a1-policy/v2"
 RIC_CHUNK_SIZE = 10
 TIME_BETWEEN_CHECKS = 10
 I = 0
-SLICES = {'slice_1':50,
-            'slice_2':50,
-            'slice_3':0,
-            'first_responder':'NO'}
+SLICES = {'slice_1':50,'slice_2':50,'slice_3':0,'first_responder':'NO'}
 
 
 type_to_use = ''
@@ -63,7 +60,7 @@ policy_data = ''
 app = Flask(__name__)
 
 # Server info
-HOST_IP = "::"
+HOST_IP = "0.0.0.0"
 HOST_PORT = 41000 # 9990
 APP_URL = "/stats"
 SERVER_URL = "/slices"
@@ -170,12 +167,15 @@ class MonitorServer (threading.Thread):
 
 
 @app.route(SERVER_URL,
-            methord=["POST"])
+            methods=["POST"])
 def ListenSlice():
-    if request.methord == "POST":
-        global SLICES
-        SLICES = request.get_json()
-        return 200
+    if request.method == "POST":
+         global SLICES
+         d = request.data
+         d = d.decode("utf-8").replace("'", '"')
+         d =json.loads(d)
+         SLICES = d
+         return {'yes':'Yes'}
 
 
 
@@ -268,14 +268,14 @@ def put_policy(thread_id, ric_name, update_value=0):
     # slice_2_prop = 100-slice_1_prop
 
     # Check IMSI and decide sliceproportions
-    if SLICES['slice_3']==0:
-        slice_1_prop =int( loaded_model.predict(SLICES['slice_1'],SLICES['slice_2'])[0]*100)
+    if SLICES['first_responder']=='NO':
+        slice_1_prop =int( loaded_model.predict([[SLICES['slice_1'],SLICES['slice_2']]])[0]*100)
         slice_2_prop = 100-slice_1_prop
         slice_3_prop = 0
         pol = 0
-    elif SLICES['slice_3']!=0:
-        slice_3_prop = int( loaded_model.predict(SLICES['slice_3'],SLICES['slice_2']+SLICES['slice_1'])[0]*100)
-        slice_1_prop =((100-slice_3_prop)/100) * (int( loaded_model.predict(SLICES['slice_1'],SLICES['slice_2'])[0]*100))
+    elif SLICES['first_responder']=="YES":
+        slice_3_prop = int( loaded_model.predict([[SLICES['slice_3'],(SLICES['slice_2']+SLICES['slice_1'])]])[0]*100)
+        slice_1_prop =((100-slice_3_prop)/100) * (int( loaded_model.predict([[SLICES['slice_1'],SLICES['slice_2']]])[0]*100))
         slice_2_prop = 100-(slice_1_prop+slice_3_prop)
         pol = 1
 
@@ -455,8 +455,8 @@ if __name__ == '__main__':
 
     rics = create_ric_dict(rics_from_agent)
 
-    # monitor_server = MonitorServer()
-    # monitor_server.start()
+    monitor_server = MonitorServer()
+    monitor_server.start()
 
     # Starting a timer
     initial_time = datetime.now()
@@ -477,4 +477,3 @@ if __name__ == '__main__':
         update_rics()
 
     verboseprint('Exiting main')
-

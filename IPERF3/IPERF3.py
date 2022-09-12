@@ -11,14 +11,14 @@ throughput_df = pd.read_csv(os.path.join(os.getcwd(),"throughput.csv"),header=0)
 # Initiate the 2 UE clients
 client1 = iperf3.Client()
 client1.duration = 35
-client1.server_hostname = '38.68.232.201' #'172.16.0.2'
-client1.port = 5022
+client1.server_hostname = '172.16.0.2' # '38.68.232.201'
+client1.port = 5023
 client1.protocol = 'tcp' # 'udp'
 
 client2 = iperf3.Client()
 client2.duration = 35
-client2.server_hostname = '38.68.232.77' #'172.16.0.3'
-client2.port = 5022
+client2.server_hostname = '172.16.0.3' # '38.68.232.77'
+client2.port = 5023
 client2.protocol = 'tcp' # 'udp'
 
 def ping(client):
@@ -27,12 +27,17 @@ def ping(client):
 
 def o1Call(slice_1,slice_2,slice_3):
     # O1 implemetation
-    var = os.getenv('IS_PRESENT')
-    data = {'slice_1':throughput_df.loc[i,'slice_1'],
+    with open(r"FirstResponder.txt",'r') as f:
+        v = str(f.read()).strip()
+   # v = os.getenv('IS_PRESENT')
+    print(v)
+    slice ={'slice_1':throughput_df.loc[i,'slice_1'],
             'slice_2':throughput_df.loc[i,'slice_2'],
             'slice_3':throughput_df.loc[i,'slice_3'],
-            'first_responder':var}
-    res = request("POST","http://38.68.234.107/slices",data = data)
+            'first_responder':v}
+    slice=str(slice)
+    print(slice)
+    res = request("POST","http://38.68.234.107:41000/slices",data=slice)
 
 
 if __name__=="__main__":
