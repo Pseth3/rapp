@@ -4,12 +4,12 @@ import json
 import sys
 from time import sleep
 # New script
-SLEEPINT=5
+SLEEPINT=3
 INITIALIZE=False
 SLICE1 = 0
 SLICE2 = 0
 SLICE3 = 0
-S3EXIST = False
+S3STATUS = False
 
 
 # Get information about K8s pod IPs
@@ -66,9 +66,9 @@ def slice2A(share=1024):
     res = request("POST","http://{}:8000/v1/nodebs/enB_macro_101_001_0019b0/slices/slice2".format(NEXRAN_XAPP))
     sleep(SLEEPINT)
 
-def slice3A(share=1024):
+def slice3A(share=0):
     print("Creating slice3")
-    res = request("POST","http://{}:8000/v1/slices".format(NEXRAN_XAPP),data='{"name":"slice3","allocation_policy":{"type":"proportional","share":50}}')
+    res = request("POST","http://{}:8000/v1/slices".format(NEXRAN_XAPP),data='{"name":"slice3","allocation_policy":{"type":"proportional","share":0}}')
     sleep(SLEEPINT)
 
     print("binding slice3 to enb")
@@ -95,7 +95,7 @@ def ueA3():
     sleep(SLEEPINT)
     print("binding ue 101010123456789 to slice1")
     # curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/slices/fast/ues/101010123456789
-    res = request("POST","http://{}:8000/v1/slices/slice1/ues/101010123456789".format(NEXRAN_XAPP))
+    res = request("POST","http://{}:8000/v1/slices/slice3/ues/101010123456789".format(NEXRAN_XAPP))
     sleep(SLEEPINT)
 
 def ueA2():
@@ -118,11 +118,10 @@ def ueA1():
     res = request("POST","http://{}:8000/v1/slices/slice1/ues/101010123456788".format(NEXRAN_XAPP))
     sleep(SLEEPINT)
 
-def ueD1():
-    pass
+def DelUe(imsi="101010123456789"):
+    res = request("DELETE","http://{}:8000/v1/ues/{}".format(NEXRAN_XAPP,imsi))
+    sleep(SLEEPINT)
 
-def ueD2():
-    pass
 
 def switchSlice(S1,S2,S3=0):
     # curl -X PUT   http://${NEXRAN_XAPP}:8000/v1/slices/slow  -H 'accept: */*'  -H 'Content-Type: application/json'  -d '{"allocation_policy": {"type": "proportional","share": 64}}'
@@ -135,10 +134,9 @@ def switchSlice(S1,S2,S3=0):
     res = request("PUT","http://{}:8000/v1/slices/slice2".format(NEXRAN_XAPP),data=data)
     sleep(SLEEPINT)
 
-    if S3!=0:
-        data = '{"allocation_policy": {"type": "proportional","share":'+str(S2)+'}}'
-        res = request("PUT","http://{}:8000/v1/slices/slice3".format(NEXRAN_XAPP),data=data)
-        sleep(SLEEPINT)
+    data = '{"allocation_policy": {"type": "proportional","share":'+str(S3)+'}}'
+    res = request("PUT","http://{}:8000/v1/slices/slice3".format(NEXRAN_XAPP),data=data)
+    sleep(SLEEPINT)
 
 
 
@@ -164,6 +162,11 @@ if __name__=="__main__":
             S2=int(json.loads(RESP.text)['slice_2'])
             S3=int(json.loads(RESP.text)['slice_3'])
 
+            if POL =='1':
+                S3EXIST=True
+            if POL=='0':
+                S3EXIST=False
+
 
         except:
             # how often to check if the Policy data is published by the rAPP
@@ -171,13 +174,13 @@ if __name__=="__main__":
             continue
 
         # create a slice if First responder appears
-        if S3 > 0 and not S3EXIST:
-            slice3A()
+        if S3 > 0 and S3EXIST and  (not S3STATUS):
             ueA3()
-            S3EXIST = True
+            S3STATUS = True
         # Delete slice3 if First responder not present
-        elif S3==0 and S3EXIST:
-            DeleteSlice("slice3")
+        elif (not S3EXIST) and S3STATUS:
+            DelUe(imsi="101010123456789")
+            S3STATUS = False
 
         # Apply new proportions
         if S1 != SLICE1 or  S2!=SLICE2 or (S3!=0 and S3!=SLICE3):
@@ -185,8 +188,6 @@ if __name__=="__main__":
             SLICE1 = S1
             SLICE2 = S2
             SLICE3 = S3
-            if S3 >0:
-                S3EXIST = True
             switchSlice(S1,S2,S3)
             print("Slice Changed")
 
@@ -196,5 +197,6 @@ if __name__=="__main__":
             enbA()
             slice2A()
             slice1A()
+            slice3A()
             ueA1()
             ueA2()

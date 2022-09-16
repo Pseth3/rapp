@@ -4,6 +4,7 @@ import os
 from subprocess import Popen
 from multiprocessing import Process
 from requests import request
+import time
 
 # Read manual Data
 throughput_df = pd.read_csv(os.path.join(os.getcwd(),"throughput.csv"),header=0)
@@ -11,12 +12,12 @@ throughput_df = pd.read_csv(os.path.join(os.getcwd(),"throughput.csv"),header=0)
 # Initiate the 2 UE clients
 client1 = iperf3.Client()
 client1.duration = 35
-client1.server_hostname = '172.16.0.2' # '38.68.232.201'
+client1.server_hostname = '172.16.0.4' # '38.68.232.201'
 client1.port = 5023
 client1.protocol = 'tcp' # 'udp'
 
 client2 = iperf3.Client()
-client2.duration = 35
+client2.duration = 10
 client2.server_hostname = '172.16.0.3' # '38.68.232.77'
 client2.port = 5023
 client2.protocol = 'tcp' # 'udp'
@@ -53,8 +54,9 @@ if __name__=="__main__":
             p2 = Process(target=ping,args=(client2,))
             p3 = Process(target=o1Call,args=(throughput_df.loc[i,'slice_1'],throughput_df.loc[i,'slice_2'],throughput_df.loc[i,'slice_3'],))
             # p2 = Process(target=client2.run())
-            p1.start()
-            p2.start()
+#            p1.start()
+ #           p2.start()
             p3.start()
-            p1.join()
-            p2.join()
+#            p1.join()
+#            p2.join()
+            time.sleep(20)

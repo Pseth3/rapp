@@ -49,7 +49,7 @@ DEFAULT_HOST = "http://{0}:8081".format(MAIN_IP)
 # DEFAULT_HOST = "http://10.152.183.137:8081"
 BASE_PATH = "/a1-policy/v2"
 RIC_CHUNK_SIZE = 10
-TIME_BETWEEN_CHECKS = 10
+TIME_BETWEEN_CHECKS = 30
 I = 0
 SLICES = {'slice_1':50,'slice_2':50,'slice_3':0,'first_responder':'NO'}
 
@@ -275,8 +275,8 @@ def put_policy(thread_id, ric_name, update_value=0):
         pol = 0
     elif SLICES['first_responder']=="YES":
         slice_3_prop = int( loaded_model.predict([[SLICES['slice_3'],(SLICES['slice_2']+SLICES['slice_1'])]])[0]*100)
-        slice_1_prop =((100-slice_3_prop)/100) * (int( loaded_model.predict([[SLICES['slice_1'],SLICES['slice_2']]])[0]*100))
-        slice_2_prop = 100-(slice_1_prop+slice_3_prop)
+        slice_1_prop = int(((100-slice_3_prop)/100) * (int( loaded_model.predict([[SLICES['slice_1'],SLICES['slice_2']]])[0]*100)))
+        slice_2_prop = int(100-(slice_1_prop+slice_3_prop))
         pol = 1
 
 
