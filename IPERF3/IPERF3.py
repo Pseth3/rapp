@@ -17,7 +17,7 @@ client1.port = 5023
 client1.protocol = 'tcp' # 'udp'
 
 client2 = iperf3.Client()
-client2.duration = 10
+client2.duration = 20
 client2.server_hostname = '172.16.0.3' # '38.68.232.77'
 client2.port = 5023
 client2.protocol = 'tcp' # 'udp'
@@ -55,7 +55,7 @@ if __name__=="__main__":
             p3 = Process(target=o1Call,args=(throughput_df.loc[i,'slice_1'],throughput_df.loc[i,'slice_2'],throughput_df.loc[i,'slice_3'],))
             # p2 = Process(target=client2.run())
 #            p1.start()
- #           p2.start()
+#            p2.start()
             p3.start()
 #            p1.join()
 #            p2.join()
