@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rapp
+spec:
+  template:
+    metadata:
+      name: rapp-pod
+    spec:
+      containers:
+      - name: rapp
+        image: rapp-docker
+        imagePullPolicy: IfNotPresent
+      restartPolicy: Never

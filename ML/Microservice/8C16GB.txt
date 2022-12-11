@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2022-11-18T23:07:49Z"
+  generateName: rapp-
+  labels:
+    controller-uid: 4f3773e0-b124-44b7-b5bf-7e57d6d3bcc4
+    job-name: rapp
+  name: rapp-846kr
+  namespace: default
+  ownerReferences:
+  - apiVersion: batch/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Job
+    name: rapp
+    uid: 4f3773e0-b124-44b7-b5bf-7e57d6d3bcc4
+  resourceVersion: "1270"
+  uid: a05a141a-2b92-4cac-a121-1cf483bbb7a4
+spec:
+  containers:
+  - image: rapp-docker
+    imagePullPolicy: IfNotPresent
+    name: rapp
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-rj5xc
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: minikube
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Never
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-rj5xc
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2022-11-18T23:07:49Z"
+    reason: PodCompleted
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2022-11-18T23:07:51Z"
+    reason: PodCompleted
+    status: "False"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2022-11-18T23:07:51Z"
+    reason: PodCompleted
+    status: "False"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2022-11-18T23:07:49Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://faf3aac4434a194f54e4818a63578abf802d14168ed57aaa33878066ea712622
+    image: rapp-docker:latest
+    imageID: docker://sha256:52fde01937373c2d5a1f03c9ab1ad2f5bf902051499841ca77f999061185c6f3
+    lastState: {}
+    name: rapp
+    ready: false
+    restartCount: 0
+    started: false
+    state:
+      terminated:
+        containerID: docker://faf3aac4434a194f54e4818a63578abf802d14168ed57aaa33878066ea712622
+        exitCode: 0
+        finishedAt: "2022-11-18T23:07:51Z"
+        reason: Completed
+        startedAt: "2022-11-18T23:07:50Z"
+  hostIP: 192.168.59.102
+  phase: Succeeded
+  podIP: 172.17.0.3
+  podIPs:
+  - ip: 172.17.0.3
+  qosClass: BestEffort
+  startTime: "2022-11-18T23:07:49Z"

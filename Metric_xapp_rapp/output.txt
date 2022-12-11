@@ -1,0 +1,7 @@
+  start_time Throughput logs                                                  0                                                  3
+0        NaN        NaN  NaN                         2022-12-10 19:35:22.203837                         2022-12-10 19:35:32.611264
+1        NaN        NaN  NaN                                                  3                                                  7
+2        NaN        NaN  NaN  19:35:17:  Connecting to host 127.0.0.1, port ...  19:35:27:  Connecting to host 127.0.0.1, port ...  start_time Throughput logs                                                  0                                                  3
+0        NaN        NaN  NaN                         2022-12-10 19:36:24.259014                         2022-12-10 19:36:34.674675
+1        NaN        NaN  NaN                                                  3                                                  7
+2        NaN        NaN  NaN  19:36:19:  Connecting to host 127.0.0.1, port ...  19:36:29:  Connecting to host 127.0.0.1, port ...

@@ -1,0 +1,1 @@
+{'CPU_main': 8, 'RAM_main:': 15.0, 'ImageCreationTime': 21.454936, 'PodCreationTime': 0.167096, 'CPU_Pod': '2', 'RAM_Pod': '1.0', 'Predict_time': '0.000762'}

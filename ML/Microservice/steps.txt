@@ -1,0 +1,13 @@
+minikube config set cpus 4
+minikube config set memory 16384
+minikube delete
+minikube start
+
+
+# Inside other tab
+eval $(minikube docker-env)
+alias k='minikube kubectl'
+docker build --tag rapp-docker .
+k -- create -f testrapp.yaml
+k -- get pods -o wide
+k -- get pod rapp-bkcwk -o yaml > 4C16GB.txt
